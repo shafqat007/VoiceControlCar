@@ -2,7 +2,7 @@ import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AddData from './src/index';
-import Voice from './src/voice'; // Import Voice component
+import Voice from './src/voice';
 
 const Stack = createNativeStackNavigator();
 

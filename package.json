@@ -4,17 +4,19 @@
   "main": "expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web"
   },
   "dependencies": {
     "@expo/metro-runtime": "~3.2.1",
-    "@react-native-voice/voice": "^3.2.4",
+    "@react-native-voice/voice": "^3.1.5",
+    "@react-navigation/native": "^6.1.17",
     "@react-navigation/native-stack": "^6.9.26",
     "expo": "~51.0.2",
-    "expo-av": "^14.0.4",
+    "expo-av": "~14.0.4",
     "expo-permissions": "^14.4.0",
+    "expo-speech": "~12.0.2",
     "expo-status-bar": "~1.12.1",
     "firebase": "^10.11.1",
     "react": "18.2.0",
