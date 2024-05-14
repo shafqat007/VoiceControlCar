@@ -24,7 +24,8 @@
     "react-native": "0.74.1",
     "react-native-permissions": "^4.1.5",
     "react-native-vector-icons": "^10.1.0",
-    "react-native-web": "~0.19.10"
+    "react-native-web": "~0.19.10",
+    "expo-dev-client": "~4.0.13"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
