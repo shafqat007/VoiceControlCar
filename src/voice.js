@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-// import { useNavigation } from '@react-navigation/native'; // Import useNavigation hook
 import Voice from '@react-native-voice/voice';
+import * as Speech from 'expo-speech';
 
 const Voiceinput = () => {
-  // const navigation = useNavigation(); // Initialize navigation
   const [result, setResult] = useState('');
   const [error, setError] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -16,9 +15,6 @@ const Voiceinput = () => {
       Voice.removeAllListeners();
     };
   }, []);
-  // const goToIndexPage = () => {
-  //   navigation.navigate('AddData');
-  // };
 
   const initializeVoice = async () => {
     try {
@@ -74,10 +70,6 @@ const Voiceinput = () => {
       <TouchableOpacity style={styles.button} onPress={isRecording ? stopRecording : startRecording}>
         <Text style={styles.buttonText}>{isRecording ? 'Stop Recording' : 'Start Recording'}</Text>
       </TouchableOpacity>
-      {/* Back button */}
-      {/* <TouchableOpacity onPress={goToIndexPage} style={styles.voiceButton}>
-        <Text style={styles.voiceButtonText}>Go to Index Page</Text>
-      </TouchableOpacity> */}
     </View>
   );
 };
@@ -87,17 +79,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  voiceButton: {
-    backgroundColor: '#2ecc71',
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 20,
-  },
-  voiceButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
   },
   title: {
     fontSize: 24,
@@ -124,22 +105,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  backButton: {
-    marginTop: 10,
-  },
-  backButtonText: {
-    color: '#3498db',
-    fontSize: 16,
-    textDecorationLine: 'underline',
-  },
-  goToIndexButton: {
-    marginTop: 10,
-  },
-  goToIndexButtonText: {
-    color: '#3498db',
-    fontSize: 16,
-    textDecorationLine: 'underline',
   },
 });
 
