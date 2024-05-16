@@ -1,22 +1,21 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import React, { useState } from 'react';
-import { useNavigation } from '@react-navigation/native'; // Import useNavigation hook
+import { useNavigation } from '@react-navigation/native';
 import { db } from '../config';
 import { ref, set } from 'firebase/database';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import Slider from '@react-native-community/slider';
 
 const AddData = () => {
-  const [stopPressed, setStopPressed] = useState(false);
-  const [forwardPressed, setForwardPressed] = useState(false);
-  const [backwardPressed, setBackwardPressed] = useState(false);
-  const [leftPressed, setLeftPressed] = useState(false);
-  const [rightPressed, setRightPressed] = useState(false);
-  const navigation = useNavigation(); // Initialize navigation
+  const [pressedButtons, setPressedButtons] = useState({});
+  const [speed, setSpeed] = useState(120); // Initial speed value
+  const navigation = useNavigation();
 
   const sendData = (direction) => {
     const data = {
       direction,
-      timestamp: new Date().toISOString() // Add timestamp for reference
+      speed,
+      timestamp: new Date().toISOString()
     };
 
     set(ref(db, 'posts/'), data)
@@ -29,105 +28,63 @@ const AddData = () => {
   };
 
   const handlePressIn = (direction) => {
-    switch (direction) {
-      case 'stop':
-        setStopPressed(true);
-        sendData('stop');
-        break;
-      case 'forward':
-        setForwardPressed(true);
-        sendData('Go:F');
-        break;
-      case 'backward':
-        setBackwardPressed(true);
-        sendData('Go:B');
-        break;
-      case 'left':
-        setLeftPressed(true);
-        sendData('Go:L');
-        break;
-      case 'right':
-        setRightPressed(true);
-        sendData('Go:R');
-        break;
-      default:
-        break;
-    }
+    setPressedButtons(prevState => ({ ...prevState, [direction]: true }));
+    sendData(direction);
   };
 
   const handlePressOut = (direction) => {
-    switch (direction) {
-      case 'stop':
-        setStopPressed(false);
-        break;
-      case 'forward':
-        setForwardPressed(false);
-        sendData('stop');
-        break;
-      case 'backward':
-        setBackwardPressed(false);
-        sendData('stop');
-        break;
-      case 'left':
-        setLeftPressed(false);
-        sendData('stop');
-        break;
-      case 'right':
-        setRightPressed(false);
-        sendData('stop');
-        break;
-      default:
-        break;
-    }
+    setPressedButtons(prevState => ({ ...prevState, [direction]: false }));
+    sendData('stop');
   };
 
-  // Function to navigate to Voice page
   const goToVoicePage = () => {
     navigation.navigate('Voice');
   };
+
+  const renderButton = (direction, icon, additionalStyles = {}) => (
+    <TouchableOpacity
+      style={[styles.button, pressedButtons[direction] && styles.activeButton, additionalStyles]}
+      onPressIn={() => handlePressIn(direction)}
+      onPressOut={() => handlePressOut(direction)}
+    >
+      <Icon name={icon} size={30} color="#fff" />
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Controller</Text>
       <View style={styles.row}>
-        <TouchableOpacity
-          style={[styles.button, forwardPressed && styles.activeButton]}
-          onPressIn={() => handlePressIn('forward')}
-          onPressOut={() => handlePressOut('forward')}>
-          <Icon name="arrow-up" size={30} color="#fff" />
-        </TouchableOpacity>
+        {renderButton('Go:FL', 'arrow-up', styles.rotateLeft)}
+        {renderButton('Go:F', 'arrow-up')}
+        {renderButton('Go:FR', 'arrow-up', styles.rotateRight)}
       </View>
       <View style={styles.row}>
+        {renderButton('Go:L', 'arrow-left')}
         <TouchableOpacity
-          style={[styles.button, leftPressed && styles.activeButton]}
-          onPressIn={() => handlePressIn('left')}
-          onPressOut={() => handlePressOut('left')}>
-          <Icon name="arrow-left" size={30} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, styles.stopButton, stopPressed && styles.activeButton]}
+          style={[styles.button, styles.stopButton, pressedButtons['stop'] && styles.activeButton]}
           onPressIn={() => handlePressIn('stop')}
-          onPressOut={() => handlePressOut('stop')}>
+          onPressOut={() => handlePressOut('stop')}
+        >
           <Text style={styles.buttonText}>Stop</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, rightPressed && styles.activeButton]}
-          onPressIn={() => handlePressIn('right')}
-          onPressOut={() => handlePressOut('right')}>
-          <Icon name="arrow-right" size={30} color="#fff" />
-        </TouchableOpacity>
+        {renderButton('Go:R', 'arrow-right')}
       </View>
-      
       <View style={styles.row}>
-        <TouchableOpacity
-          style={[styles.button, backwardPressed && styles.activeButton]}
-          onPressIn={() => handlePressIn('backward')}
-          onPressOut={() => handlePressOut('backward')}>
-          <Icon name="arrow-down" size={30} color="#fff" />
-        </TouchableOpacity>
+        {renderButton('Go:BL', 'arrow-down', styles.rotateRight)}
+        {renderButton('Go:B', 'arrow-down')}
+        {renderButton('Go:BR', 'arrow-down', styles.rotateLeft)}
       </View>
-
-      {/* Button to navigate to Voice.js page */}
+      <View style={styles.sliderContainer}>
+        <Text>Speed: {speed}</Text>
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={255}
+          value={speed}
+          onValueChange={(value) => setSpeed(value)}
+        />
+      </View>
       <TouchableOpacity onPress={goToVoicePage} style={styles.voiceButton}>
         <Text style={styles.voiceButtonText}>Go to Voice Page</Text>
       </TouchableOpacity>
@@ -174,7 +131,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2980b9',
   },
   stopButton: {
-    backgroundColor: '#e74c3c', // Red color for stop button
+    backgroundColor: '#e74c3c',
   },
   voiceButton: {
     backgroundColor: '#2ecc71',
@@ -186,5 +143,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  sliderContainer: {
+    width: '80%',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  slider: {
+    width: '100%',
+  },
+  rotateLeft: {
+    transform: [{ rotate: '-45deg' }],
+  },
+  rotateRight: {
+    transform: [{ rotate: '45deg' }],
   },
 });
