@@ -11,6 +11,8 @@ const AddData = () => {
   const [speed, setSpeed] = useState(120); // Initial speed value
   const navigation = useNavigation();
 
+  const fixedSpeeds = [40, 80, 120, 160, 200, 255];
+
   const sendData = (direction) => {
     const data = {
       direction,
@@ -39,6 +41,9 @@ const AddData = () => {
 
   const goToVoicePage = () => {
     navigation.navigate('Voice');
+  };
+  const goToMapPage = () => {
+    navigation.navigate('Map');
   };
 
   const renderButton = (direction, icon, additionalStyles = {}) => (
@@ -79,14 +84,21 @@ const AddData = () => {
         <Text>Speed: {speed}</Text>
         <Slider
           style={styles.slider}
-          minimumValue={0}
+          minimumValue={40}
           maximumValue={255}
+          step={1}
           value={speed}
-          onValueChange={(value) => setSpeed(value)}
+          onValueChange={(value) => {
+            const nearestValue = fixedSpeeds.reduce((prev, curr) => Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev);
+            setSpeed(nearestValue);
+          }}
         />
       </View>
       <TouchableOpacity onPress={goToVoicePage} style={styles.voiceButton}>
         <Text style={styles.voiceButtonText}>Go to Voice Page</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={goToMapPage} style={styles.voiceButton}>
+        <Text style={styles.voiceButtonText}>Go to Map Page</Text>
       </TouchableOpacity>
     </View>
   );
@@ -109,53 +121,50 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginVertical: 5,
   },
   button: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 50,
-    width: 60,
-    height: 60,
-    backgroundColor: '#3498db',
-    marginHorizontal: 10,
-    marginVertical: 5,
+    backgroundColor: '#2196F3',
+    padding: 20,
+    borderRadius:5,
+    margin: 5,
+  },
+  activeButton: {
+    backgroundColor: '#1976D2',
+  },
+  stopButton: {
+    backgroundColor: '#FF0000',
+    borderRadius:100
+    
   },
   buttonText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 20,
+    textAlign: 'center',
   },
-  activeButton: {
-    backgroundColor: '#2980b9',
+  rotateLeft: {
+    transform: [{ rotate: '-45deg' }],
+    borderRadius:5
   },
-  stopButton: {
-    backgroundColor: '#e74c3c',
-  },
-  voiceButton: {
-    backgroundColor: '#2ecc71',
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 20,
-  },
-  voiceButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+  rotateRight: {
+    transform: [{ rotate: '45deg' }],
+    borderRadius:5
   },
   sliderContainer: {
     width: '80%',
-    alignItems: 'center',
-    marginVertical: 20,
+    padding: 20,
   },
   slider: {
     width: '100%',
   },
-  rotateLeft: {
-    transform: [{ rotate: '-45deg' }],
+  voiceButton: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#4CAF50',
+    borderRadius: 5,
   },
-  rotateRight: {
-    transform: [{ rotate: '45deg' }],
+  voiceButtonText: {
+    color: '#fff',
+    fontSize: 18,
   },
 });
