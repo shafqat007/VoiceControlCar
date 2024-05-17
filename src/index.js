@@ -11,6 +11,8 @@ const AddData = () => {
   const [speed, setSpeed] = useState(120); // Initial speed value
   const navigation = useNavigation();
 
+  const fixedSpeeds = [40, 80, 120, 160, 200, 255];
+
   const sendData = (direction) => {
     const data = {
       direction,
@@ -40,6 +42,9 @@ const AddData = () => {
   const goToVoicePage = () => {
     navigation.navigate('Voice');
   };
+  const goToMapPage = () => {
+    navigation.navigate('Map');
+  };
 
   const renderButton = (direction, icon, additionalStyles = {}) => (
     <TouchableOpacity
@@ -47,7 +52,7 @@ const AddData = () => {
       onPressIn={() => handlePressIn(direction)}
       onPressOut={() => handlePressOut(direction)}
     >
-      <Icon name={icon} size={30} color="#fff" />
+      <Icon name={icon} size={30} color="#000" />
     </TouchableOpacity>
   );
 
@@ -79,14 +84,21 @@ const AddData = () => {
         <Text>Speed: {speed}</Text>
         <Slider
           style={styles.slider}
-          minimumValue={0}
+          minimumValue={40}
           maximumValue={255}
+          step={1}
           value={speed}
-          onValueChange={(value) => setSpeed(value)}
+          onValueChange={(value) => {
+            const nearestValue = fixedSpeeds.reduce((prev, curr) => Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev);
+            setSpeed(nearestValue);
+          }}
         />
       </View>
       <TouchableOpacity onPress={goToVoicePage} style={styles.voiceButton}>
         <Text style={styles.voiceButtonText}>Go to Voice Page</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={goToMapPage} style={styles.voiceButton}>
+        <Text style={styles.voiceButtonText}>Go to Map Page</Text>
       </TouchableOpacity>
     </View>
   );
@@ -109,48 +121,25 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginVertical: 5,
   },
   button: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 50,
-    width: 60,
-    height: 60,
-    backgroundColor: '#3498db',
-    marginHorizontal: 10,
-    marginVertical: 5,
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 100, // Make the border radius round
+    margin: 5,
+  },
+  activeButton: {
+    backgroundColor: '#1976D2',
+  },
+  stopButton: {
+    backgroundColor: '#FF0000',
+    borderRadius: 100 // Make the border radius round
   },
   buttonText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  activeButton: {
-    backgroundColor: '#2980b9',
-  },
-  stopButton: {
-    backgroundColor: '#e74c3c',
-  },
-  voiceButton: {
-    backgroundColor: '#2ecc71',
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 20,
-  },
-  voiceButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  sliderContainer: {
-    width: '80%',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  slider: {
-    width: '100%',
+    fontSize: 20,
+    textAlign: 'center',
   },
   rotateLeft: {
     transform: [{ rotate: '-45deg' }],
@@ -158,4 +147,22 @@ const styles = StyleSheet.create({
   rotateRight: {
     transform: [{ rotate: '45deg' }],
   },
+  sliderContainer: {
+    width: '80%',
+    padding: 20,
+  },
+  slider: {
+    width: '100%',
+  },
+  voiceButton: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: '#4CAF50',
+    borderRadius: 5,
+  },
+  voiceButtonText: {
+    color: '#fff',
+    fontSize: 18,
+  },
 });
+
