@@ -1,17 +1,32 @@
+
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { db } from '../config';
-import { ref, set } from 'firebase/database';
+import { ref, set, onValue } from 'firebase/database';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Slider from '@react-native-community/slider';
 
 const AddData = () => {
   const [pressedButtons, setPressedButtons] = useState({});
   const [speed, setSpeed] = useState(120); // Initial speed value
+  const [direction, setDirection] = useState(0); // Initial servo direction
+  const [distance, setDistance] = useState(0); // Initial distance
   const navigation = useNavigation();
 
   const fixedSpeeds = [40, 80, 120, 160, 200, 255];
+  const fixedDirections = Array.from({ length: 10 }, (_, i) => i * 20); // 0, 20, 40, ..., 180
+
+  useEffect(() => {
+    // Listener for distance updates from Firebase
+    const distanceRef = ref(db, 'servo/distance');
+    onValue(distanceRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data !== null) {
+        setDistance(data);
+      }
+    });
+  }, []);
 
   const sendData = (direction) => {
     const data = {
@@ -26,6 +41,16 @@ const AddData = () => {
       })
       .catch((error) => {
         console.error('Error sending data:', error);
+      });
+  };
+
+  const sendDirection = (direction) => {
+    set(ref(db, 'servo/direction'), direction)
+      .then(() => {
+        console.log('Direction sent successfully:', direction);
+      })
+      .catch((error) => {
+        console.error('Error sending direction:', error);
       });
   };
 
@@ -94,12 +119,29 @@ const AddData = () => {
           }}
         />
       </View>
-      <TouchableOpacity onPress={goToVoicePage} style={styles.voiceButton}>
-        <Text style={styles.voiceButtonText}>Go to Voice Page</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={goToMapPage} style={styles.voiceButton}>
-        <Text style={styles.voiceButtonText}>Go to Map Page</Text>
-      </TouchableOpacity>
+      <View style={styles.sliderContainer}>
+        <Text>Direction: {direction}°</Text>
+        <Slider
+          style={styles.slider}
+          minimumValue={0}
+          maximumValue={180}
+          step={20}
+          value={direction}
+          onValueChange={(value) => {
+            setDirection(value);
+            sendDirection(value);
+          }}
+        />
+      </View>
+      <Text style={styles.distanceText}>Distance: {distance} cm</Text>
+      <View style={styles.buttonRow}>
+        <TouchableOpacity onPress={goToVoicePage} style={styles.navigationButton}>
+          <Text style={styles.navigationButtonText}>Go to Voice Page</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={goToMapPage} style={styles.navigationButton}>
+          <Text style={styles.navigationButtonText}>Go to Map Page</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -126,7 +168,7 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#fff',
     padding: 20,
-    borderRadius: 100, // Make the border radius round
+    borderRadius: 100,
     margin: 5,
   },
   activeButton: {
@@ -134,7 +176,7 @@ const styles = StyleSheet.create({
   },
   stopButton: {
     backgroundColor: '#FF0000',
-    borderRadius: 100 // Make the border radius round
+    borderRadius: 100
   },
   buttonText: {
     color: '#fff',
@@ -154,15 +196,27 @@ const styles = StyleSheet.create({
   slider: {
     width: '100%',
   },
-  voiceButton: {
+  distanceText: {
+    fontSize: 16,
+    marginVertical: 10,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    paddingHorizontal: 20,
     marginTop: 20,
+  },
+  navigationButton: {
     padding: 15,
     backgroundColor: '#4CAF50',
     borderRadius: 5,
+    flex: 1,
+    marginHorizontal: 5,
+    alignItems: 'center',
   },
-  voiceButtonText: {
+  navigationButtonText: {
     color: '#fff',
     fontSize: 18,
   },
 });
-
