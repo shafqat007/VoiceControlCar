@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import MapView, { Marker } from 'react-native-maps';
-import { StyleSheet, View, Text, Button, TouchableOpacity, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // Import Ionicons from Expo for the back button
+import React, { useState, useEffect, useRef } from 'react';
+import MapView, { Marker, Polyline } from 'react-native-maps';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { db } from '../config'; // Make sure this points to your Firebase config
-import { ref, set, onValue } from 'firebase/database';
+import { db } from '../config';
+import { ref, set, onValue, remove } from 'firebase/database';
 
 export default function Map({ navigation }) {
     const [mapRegion, setMapRegion] = useState({
@@ -17,11 +17,13 @@ export default function Map({ navigation }) {
     const [markers, setMarkers] = useState([]);
     const [currentLocation, setCurrentLocation] = useState(null);
     const [carLocation, setCarLocation] = useState(null);
+    const [showShortestPath, setShowShortestPath] = useState(false);
+    const [shortestPath, setShortestPath] = useState([]);
+
+    const mapRef = useRef(null);
 
     useEffect(() => {
-        // Request permission and get user's current location
         userLocation();
-        // Fetch car location from Firebase
         fetchCarLocation();
     }, []);
 
@@ -61,53 +63,79 @@ export default function Map({ navigation }) {
 
     const clearMarkers = () => {
         setMarkers([]);
+        setShortestPath([]);
+        setShowShortestPath(false);
+
+        const pathRef = ref(db, 'path');
+        remove(pathRef)
+            .then(() => {
+                console.log('Path data cleared successfully');
+            })
+            .catch((error) => {
+                console.error('Error clearing path data:', error);
+            });
     };
 
-    const sendLocationToFirebase = () => {
-        // Update current location
-        const currentLocationRef = ref(db, 'locations/current');
-        const currentLocationData = {
-            latitude: currentLocation.latitude,
-            longitude: currentLocation.longitude,
-            timestamp: new Date().toISOString()
+    const sendPathDataToFirebase = (currentLocation, closestMarker, distance) => {
+        const pathDataRef = ref(db, 'path');
+        const pathData = {
+            controllerLocation: {
+                latitude: parseFloat(currentLocation.latitude.toFixed(2)),
+                longitude: parseFloat(currentLocation.longitude.toFixed(2)),
+            },
+            closestMarker: {
+                latitude: parseFloat(closestMarker.latitude.toFixed(2)),
+                longitude: parseFloat(closestMarker.longitude.toFixed(2)),
+            },
+            distance: parseFloat(distance.toFixed(2)),
         };
-
-        // Update markers
-        const markersRef = ref(db, 'locations/markers');
-        const markersData = markers.map((marker, index) => ({
-            [`marker${index + 1}`]: {
-                latitude: marker.latitude,
-                longitude: marker.longitude
-            }
-        }));
-
-        const updates = {};
-        updates['current'] = currentLocationData;
-        updates['markers'] = Object.assign({}, ...markersData);
-
-        set(currentLocationRef, currentLocationData)
+    
+        set(pathDataRef, pathData)
             .then(() => {
-                console.log('Current location data sent successfully:', currentLocationData);
+                console.log('Path data sent successfully:', pathData);
             })
             .catch((error) => {
-                console.error('Error sending current location data:', error);
-            });
-
-        set(markersRef, Object.assign({}, ...markersData))
-            .then(() => {
-                console.log('Markers data sent successfully:', markersData);
-            })
-            .catch((error) => {
-                console.error('Error sending markers data:', error);
+                console.error('Error sending path data:', error);
             });
     };
-
+    
+    const calculateShortestPath = () => {
+        if (!currentLocation || markers.length === 0) {
+            return;
+        }
+    
+        let closestMarker = null;
+        let shortestDistance = Infinity;
+    
+        markers.forEach((marker) => {
+            const distance = Math.sqrt(
+                Math.pow(marker.latitude - currentLocation.latitude, 2) +
+                Math.pow(marker.longitude - currentLocation.longitude, 2)
+            );
+    
+            if (distance < shortestDistance) {
+                shortestDistance = distance;
+                closestMarker = marker;
+            }
+        });
+    
+        if (closestMarker) {
+            const pathCoordinates = [currentLocation, closestMarker];
+            setShortestPath(pathCoordinates);
+            setShowShortestPath(true);
+    
+            const distanceInMeters = shortestDistance * 111139;
+            sendPathDataToFirebase(currentLocation, closestMarker, distanceInMeters);
+        }
+    };
+    
     return (
         <View style={styles.container}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <Ionicons name="arrow-back" size={24} color="black" />
             </TouchableOpacity>
             <MapView 
+                ref={mapRef}
                 style={styles.map} 
                 region={mapRegion}
                 onPress={(e) => addMarker(e.nativeEvent.coordinate)}
@@ -120,6 +148,13 @@ export default function Map({ navigation }) {
                 )}
                 {carLocation && (
                     <Marker coordinate={carLocation} pinColor="yellow" title="Car Location" />
+                )}
+                {showShortestPath && (
+                    <Polyline
+                        coordinates={shortestPath}
+                        strokeColor="green"
+                        strokeWidth={3}
+                    />
                 )}
             </MapView>
             <ScrollView style={styles.infoContainer}>
@@ -135,8 +170,12 @@ export default function Map({ navigation }) {
                 ))}
             </ScrollView>
             <View style={styles.buttonContainer}>
-                <Button title="Send Location" onPress={sendLocationToFirebase} />
-                <Button title="Clear Location" onPress={clearMarkers} />
+                <TouchableOpacity style={styles.button} onPress={clearMarkers}>
+                    <Text style={styles.buttonText}>Clear Location</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.button} onPress={calculateShortestPath}>
+                    <Text style={styles.buttonText}>Go to Markers</Text>
+                </TouchableOpacity>
             </View>
         </View>
     );
@@ -157,7 +196,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'center',
-        marginVertical: 10,
+        marginVertical: 20,
     },
     backButton: {
         position: 'absolute',
@@ -167,5 +206,16 @@ const styles = StyleSheet.create({
     },
     text: {
         marginBottom: 5,
+    },
+    button: {
+        backgroundColor: '#4CAF50',
+        paddingVertical: 10,
+        borderRadius: 10,
+    },
+    buttonText: {
+        color: '#fff',
+        fontSize: 14,
+        textAlign: 'center',
+        padding: 5,
     },
 });

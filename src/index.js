@@ -1,4 +1,3 @@
-
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -67,6 +66,7 @@ const AddData = () => {
   const goToVoicePage = () => {
     navigation.navigate('Voice');
   };
+  
   const goToMapPage = () => {
     navigation.navigate('Map');
   };
@@ -91,13 +91,7 @@ const AddData = () => {
       </View>
       <View style={styles.row}>
         {renderButton('Go:L', 'arrow-left')}
-        <TouchableOpacity
-          style={[styles.button, styles.stopButton, pressedButtons['stop'] && styles.activeButton]}
-          onPressIn={() => handlePressIn('stop')}
-          onPressOut={() => handlePressOut('stop')}
-        >
-          <Text style={styles.buttonText}>Stop</Text>
-        </TouchableOpacity>
+        {renderButton('stop', 'stop', styles.stopButton)}
         {renderButton('Go:R', 'arrow-right')}
       </View>
       <View style={styles.row}>
@@ -176,7 +170,6 @@ const styles = StyleSheet.create({
   },
   stopButton: {
     backgroundColor: '#FF0000',
-    borderRadius: 100
   },
   buttonText: {
     color: '#fff',
@@ -220,3 +213,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 });
+
+
