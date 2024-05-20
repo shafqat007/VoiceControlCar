@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import MapView, { Marker } from 'react-native-maps';
+import React, { useState, useEffect, useRef } from 'react';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import { StyleSheet, View, Text, Button, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // Import Ionicons from Expo for the back button
 import * as Location from 'expo-location';
@@ -17,6 +17,10 @@ export default function Map({ navigation }) {
     const [markers, setMarkers] = useState([]);
     const [currentLocation, setCurrentLocation] = useState(null);
     const [carLocation, setCarLocation] = useState(null);
+    const [showShortestPath, setShowShortestPath] = useState(false);
+    const [shortestPath, setShortestPath] = useState([]);
+
+    const mapRef = useRef(null);
 
     useEffect(() => {
         // Request permission and get user's current location
@@ -61,6 +65,8 @@ export default function Map({ navigation }) {
 
     const clearMarkers = () => {
         setMarkers([]);
+        setShortestPath([]);
+        setShowShortestPath(false);
     };
 
     const sendLocationToFirebase = () => {
@@ -102,12 +108,30 @@ export default function Map({ navigation }) {
             });
     };
 
+    const calculateShortestPath = () => {
+        if (!carLocation || markers.length === 0) {
+            return;
+        }
+
+        const shortestPathCoordinates = markers.reduce((acc, marker) => {
+            const distance = Math.sqrt(
+                Math.pow(marker.latitude - carLocation.latitude, 2) +
+                Math.pow(marker.longitude - carLocation.longitude, 2)
+            );
+            return distance < acc.distance ? { coordinates: [carLocation, marker], distance } : acc;
+        }, { coordinates: [], distance: Infinity }).coordinates;
+
+        setShortestPath(shortestPathCoordinates);
+        setShowShortestPath(true);
+    };
+
     return (
         <View style={styles.container}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
                 <Ionicons name="arrow-back" size={24} color="black" />
             </TouchableOpacity>
             <MapView 
+                ref={mapRef}
                 style={styles.map} 
                 region={mapRegion}
                 onPress={(e) => addMarker(e.nativeEvent.coordinate)}
@@ -120,6 +144,13 @@ export default function Map({ navigation }) {
                 )}
                 {carLocation && (
                     <Marker coordinate={carLocation} pinColor="yellow" title="Car Location" />
+                )}
+                {showShortestPath && (
+                    <Polyline
+                        coordinates={shortestPath}
+                        strokeColor="green"
+                        strokeWidth={3}
+                    />
                 )}
             </MapView>
             <ScrollView style={styles.infoContainer}>
@@ -135,8 +166,15 @@ export default function Map({ navigation }) {
                 ))}
             </ScrollView>
             <View style={styles.buttonContainer}>
-                <Button title="Send Location" onPress={sendLocationToFirebase} />
-                <Button title="Clear Location" onPress={clearMarkers} />
+                <TouchableOpacity style={styles.button} onPress={sendLocationToFirebase}>
+                    <Text style={styles.buttonText}>Send Location</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.button} onPress={clearMarkers}>
+                    <Text style={styles.buttonText}>Clear Location</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.button} onPress={calculateShortestPath}>
+                    <Text style={styles.buttonText}>Go to Markers</Text>
+                </TouchableOpacity>
             </View>
         </View>
     );
@@ -157,7 +195,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'center',
-        marginVertical: 10,
+        marginVertical: 20, // Adjusted margin for increased spacing
     },
     backButton: {
         position: 'absolute',
@@ -167,5 +205,17 @@ const styles = StyleSheet.create({
     },
     text: {
         marginBottom: 5,
+    },
+    button: {
+        backgroundColor: '#4CAF50',
+        paddingVertical: 10,
+        borderRadius: 10,
+   // Adjusted horizontal margin for spacing between buttons
+    },
+    buttonText: {
+        color: '#fff',
+        fontSize: 14,
+        textAlign: 'center',
+        padding: 5,
     },
 });
