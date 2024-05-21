@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   distanceText: {
-    fontSize: 16,
+    fontSize: 16.1,
     marginVertical: 10,
   },
   buttonRow: {
