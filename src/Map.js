@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import MapView, { Marker, Polyline } from 'react-native-maps';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState, useEffect } from 'react';
+import MapView, { Marker } from 'react-native-maps';
+import { StyleSheet, View, Text, Button, TouchableOpacity, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // Import Ionicons from Expo for the back button
 import * as Location from 'expo-location';
 import { db } from '../config';
 import { ref, set, onValue, remove } from 'firebase/database';
@@ -63,11 +63,31 @@ export default function Map({ navigation }) {
 
     const clearMarkers = () => {
         setMarkers([]);
-        setShortestPath([]);
-        setShowShortestPath(false);
+    };
 
-        const pathRef = ref(db, 'path');
-        remove(pathRef)
+    const sendLocationToFirebase = () => {
+        // Update current location
+        const currentLocationRef = ref(db, 'locations/current');
+        const currentLocationData = {
+            latitude: currentLocation.latitude,
+            longitude: currentLocation.longitude,
+            timestamp: new Date().toISOString()
+        };
+
+        // Update markers
+        const markersRef = ref(db, 'locations/markers');
+        const markersData = markers.map((marker, index) => ({
+            [`marker${index + 1}`]: {
+                latitude: marker.latitude,
+                longitude: marker.longitude
+            }
+        }));
+
+        const updates = {};
+        updates['current'] = currentLocationData;
+        updates['markers'] = Object.assign({}, ...markersData);
+
+        set(currentLocationRef, currentLocationData)
             .then(() => {
                 console.log('Path data cleared successfully');
             })
@@ -98,37 +118,7 @@ export default function Map({ navigation }) {
                 console.error('Error sending path data:', error);
             });
     };
-    
-    const calculateShortestPath = () => {
-        if (!currentLocation || markers.length === 0) {
-            return;
-        }
-    
-        let closestMarker = null;
-        let shortestDistance = Infinity;
-    
-        markers.forEach((marker) => {
-            const distance = Math.sqrt(
-                Math.pow(marker.latitude - currentLocation.latitude, 2) +
-                Math.pow(marker.longitude - currentLocation.longitude, 2)
-            );
-    
-            if (distance < shortestDistance) {
-                shortestDistance = distance;
-                closestMarker = marker;
-            }
-        });
-    
-        if (closestMarker) {
-            const pathCoordinates = [currentLocation, closestMarker];
-            setShortestPath(pathCoordinates);
-            setShowShortestPath(true);
-    
-            const distanceInMeters = shortestDistance * 111139;
-            sendPathDataToFirebase(currentLocation, closestMarker, distanceInMeters);
-        }
-    };
-    
+
     return (
         <View style={styles.container}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -170,12 +160,8 @@ export default function Map({ navigation }) {
                 ))}
             </ScrollView>
             <View style={styles.buttonContainer}>
-                <TouchableOpacity style={styles.button} onPress={clearMarkers}>
-                    <Text style={styles.buttonText}>Clear Location</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.button} onPress={calculateShortestPath}>
-                    <Text style={styles.buttonText}>Go to Markers</Text>
-                </TouchableOpacity>
+                <Button title="Send Location" onPress={sendLocationToFirebase} />
+                <Button title="Clear Location" onPress={clearMarkers} />
             </View>
         </View>
     );
@@ -196,7 +182,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-around',
         alignItems: 'center',
-        marginVertical: 20,
+        marginVertical: 10,
     },
     backButton: {
         position: 'absolute',
@@ -206,16 +192,5 @@ const styles = StyleSheet.create({
     },
     text: {
         marginBottom: 5,
-    },
-    button: {
-        backgroundColor: '#4CAF50',
-        paddingVertical: 10,
-        borderRadius: 10,
-    },
-    buttonText: {
-        color: '#fff',
-        fontSize: 14,
-        textAlign: 'center',
-        padding: 5,
     },
 });
